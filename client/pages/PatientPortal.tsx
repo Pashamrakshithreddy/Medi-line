@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import {
+  AreaChart,
   AlertTriangle,
   ArrowUpRight,
   Award,
@@ -69,6 +70,11 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
 
 interface ReportMetric {
   label: string;
@@ -342,11 +348,518 @@ const sidebarNav = [
   { label: "Settings", icon: History },
 ];
 
+const chartData = [
+  { month: "January", heartRate: 78, bloodPressure: 130, glucose: 110 },
+  { month: "February", heartRate: 75, bloodPressure: 128, glucose: 105 },
+  { month: "March", heartRate: 72, bloodPressure: 125, glucose: 102 },
+  { month: "April", heartRate: 73, bloodPressure: 126, glucose: 108 },
+  { month: "May", heartRate: 70, bloodPressure: 124, glucose: 99 },
+  { month: "June", heartRate: 72, bloodPressure: 128, glucose: 104 },
+];
+
+const chartConfig = {
+  heartRate: {
+    label: "Heart Rate (BPM)",
+    color: "hsl(var(--primary))",
+  },
+  bloodPressure: {
+    label: "Systolic BP (mmHg)",
+    color: "hsl(var(--warning))",
+  },
+  glucose: {
+    label: "Glucose (mg/dL)",
+    color: "hsl(var(--info))",
+  },
+};
+
+const HealthTrendsView = () => (
+  <Card className="rounded-3xl border border-border/60 bg-background/90 shadow-xl backdrop-blur">
+    <CardHeader>
+      <CardTitle>Health Trends</CardTitle>
+      <CardDescription>Your key metrics over the last 6 months.</CardDescription>
+    </CardHeader>
+    <CardContent>
+      <ChartContainer config={chartConfig} className="min-h-[300px] w-full">
+        <AreaChart accessibilityLayer data={chartData}>
+          <defs>
+            <linearGradient id="fillHeartRate" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="var(--color-heartRate)" stopOpacity={0.8} />
+              <stop offset="95%" stopColor="var(--color-heartRate)" stopOpacity={0.1} />
+            </linearGradient>
+            <linearGradient id="fillBloodPressure" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="var(--color-bloodPressure)" stopOpacity={0.8} />
+              <stop offset="95%" stopColor="var(--color-bloodPressure)" stopOpacity={0.1} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid vertical={false} />
+          <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} />
+          <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+          <Area dataKey="bloodPressure" type="natural" fill="url(#fillBloodPressure)" stroke="var(--color-bloodPressure)" stackId="a" />
+          <Area dataKey="heartRate" type="natural" fill="url(#fillHeartRate)" stroke="var(--color-heartRate)" stackId="a" />
+        </AreaChart>
+      </ChartContainer>
+    </CardContent>
+  </Card>
+);
+
+const DashboardView = () => (
+  <>
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      {quickStats.map((stat) => (
+        <Card
+          key={stat.label}
+          className="rounded-2xl border border-border/50 bg-background/80 shadow-lg backdrop-blur transition-transform duration-200 hover:-translate-y-1"
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardDescription className="text-sm text-muted-foreground">
+              {stat.label}
+            </CardDescription>
+            <span className={`rounded-full p-2 ${stat.tone}`}>
+              <stat.icon className="h-4 w-4" aria-hidden="true" />
+            </span>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-semibold">{stat.value}</div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              {stat.description}
+            </p>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+    <HealthProfileView />
+    <EmergencyContactsView />
+  </>
+);
+
+const UploadRecordsView = () => (
+  <Card className="rounded-3xl border border-border/60 bg-background/80 shadow-xl backdrop-blur">
+    <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <CardTitle className="text-xl font-semibold text-foreground">
+          Add New Medical Record
+        </CardTitle>
+        <CardDescription className="text-sm text-muted-foreground">
+          Upload documents, paste text, or let Medi-Link AI structure your reports instantly.
+        </CardDescription>
+      </div>
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <Brain className="h-4 w-4 text-primary" aria-hidden="true" />
+        AI insights ready in under 30 seconds
+      </div>
+    </CardHeader>
+    <CardContent className="space-y-6">
+      <div className="grid gap-6 md:grid-cols-2">
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="title">Report Title</Label>
+            <Input
+              id="title"
+              placeholder="e.g., Comprehensive Blood Panel"
+              className="rounded-xl border-input/70"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="type">Report Type</Label>
+            <Select defaultValue="Blood Test">
+              <SelectTrigger id="type" className="rounded-xl border-input/70">
+                <SelectValue placeholder="Select report type" />
+              </SelectTrigger>
+              <SelectContent className="rounded-2xl border border-border/60">
+                {reportTypeOptions.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="date">Date of Checkup</Label>
+              <Input id="date" type="date" className="rounded-xl border-input/70" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="doctor">Referring Doctor&apos;s Name</Label>
+              <Input id="doctor" placeholder="Dr. Anita Rao" className="rounded-xl border-input/70" />
+            </div>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="clinic">Hospital / Clinic Name</Label>
+              <Input id="clinic" placeholder="City Medical Diagnostics" className="rounded-xl border-input/70" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="contact">Doctor Contact Number (optional)</Label>
+              <Input id="contact" placeholder="+1 (415) 444-9871" className="rounded-xl border-input/70" />
+            </div>
+          </div>
+        </div>
+        <div className="flex flex-col gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="content">Raw Report Content</Label>
+            <Textarea
+              id="content"
+              placeholder="Paste your report text or add optional context for AI analysis"
+              className="min-h-[140px] rounded-2xl border-input/70"
+            />
+          </div>
+          <label
+            htmlFor="file-upload"
+            className="flex flex-1 cursor-pointer flex-col items-center justify-center rounded-3xl border border-dashed border-primary/40 bg-primary/5 p-6 text-center transition-colors hover:border-primary/60"
+          >
+            <Upload className="h-8 w-8 text-primary" aria-hidden="true" />
+            <p className="mt-3 text-sm font-medium text-primary">
+              Drag & drop files or click to upload
+            </p>
+            <p className="text-xs text-muted-foreground">
+              PDF, JPG, DICOM, DOCX up to 50MB per file
+            </p>
+            <input id="file-upload" type="file" className="sr-only" multiple />
+          </label>
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center gap-3">
+        <Button className="rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90">
+          <Brain className="mr-2 h-4 w-4" aria-hidden="true" /> Upload & Analyze with AI
+        </Button>
+        <Button variant="outline" className="rounded-full border-primary/40 text-primary">
+          Save Draft
+        </Button>
+        <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+          <Users className="h-4 w-4 text-primary" aria-hidden="true" /> Guardian approval requested post-upload
+        </span>
+      </div>
+    </CardContent>
+  </Card>
+);
+
+const MyReportsView = ({ onSelectReport, sortedReports, riskBadgeStyles, metricStatusStyles }: any) => (
+  <Card className="rounded-3xl border border-border/60 bg-background/95 shadow-2xl backdrop-blur">
+    <CardHeader className="gap-6">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <CardTitle className="text-xl font-semibold text-foreground">
+            Your Medical History
+          </CardTitle>
+          <CardDescription className="text-sm text-muted-foreground">
+            Filter, search, and share records instantly with care teams.
+          </CardDescription>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <ShieldCheck className="h-4 w-4 text-success" aria-hidden="true" />
+          Every access logged & guardian notified
+        </div>
+      </div>
+      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-[1fr,1fr,1fr,auto]">
+        <div className="flex items-center gap-2 rounded-full border border-border/60 bg-background px-4 py-2">
+          <Search className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+          <Input
+            placeholder="Search reports, doctors, hospitals"
+            className="h-8 border-none bg-transparent p-0 text-sm focus-visible:ring-0"
+          />
+        </div>
+        <Select defaultValue="All Types">
+          <SelectTrigger className="rounded-full border border-border/60 bg-background px-4 py-2 text-sm">
+            <SelectValue placeholder="Filter by type" />
+          </SelectTrigger>
+          <SelectContent className="rounded-2xl border border-border/60">
+            <SelectItem value="All Types">All Types</SelectItem>
+            {reportTypeOptions.map((option) => (
+              <SelectItem key={option} value={option}>
+                {option}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button variant="outline" className="rounded-full border-border/60 text-muted-foreground">
+          <CalendarClock className="mr-2 h-4 w-4" aria-hidden="true" /> Date Range
+        </Button>
+        <Button variant="ghost" className="rounded-full text-sm text-muted-foreground">
+          <Filter className="mr-2 h-4 w-4" aria-hidden="true" /> Sort by: Most Recent
+        </Button>
+      </div>
+    </CardHeader>
+    <CardContent className="grid gap-5 xl:grid-cols-2">
+      {sortedReports.map((report: ReportSummary) => (
+        <div
+          key={report.id}
+          className="flex h-full flex-col gap-4 rounded-3xl border border-border/60 bg-background/80 p-6 shadow-xl transition-transform duration-200 hover:-translate-y-1"
+        >
+          <div className={`inline-flex w-fit items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${report.typeColor}`}>
+            {report.type}
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-lg font-semibold text-foreground">
+              {report.title}
+            </h3>
+            <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+              <span className="inline-flex items-center gap-2">
+                <CalendarClock className="h-4 w-4 text-primary" aria-hidden="true" />
+                {report.date}
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <Hospital className="h-4 w-4 text-primary" aria-hidden="true" />
+                {report.hospital}
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <Stethoscope className="h-4 w-4 text-primary" aria-hidden="true" />
+                {report.doctor}
+              </span>
+            </div>
+          </div>
+          <p className="line-clamp-3 text-sm text-muted-foreground">
+            {report.aiSummary}
+          </p>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {report.metrics.map((metric) => (
+              <div
+                key={metric.label}
+                className={`rounded-2xl px-3 py-2 text-xs font-semibold ${metricStatusStyles[metric.status]}`}
+              >
+                <p className="uppercase tracking-wide text-muted-foreground/70">
+                  {metric.label}
+                </p>
+                <p className="text-base text-foreground">
+                  {metric.value}
+                  {metric.unit ? <span className="text-xs text-muted-foreground"> {metric.unit}</span> : null}
+                </p>
+              </div>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <Badge className={`rounded-full px-4 py-1 text-xs font-semibold ${riskBadgeStyles[report.riskLevel]}`}>
+              Risk: {report.riskLevel}
+            </Badge>
+            <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+              <Phone className="h-4 w-4 text-primary" aria-hidden="true" />
+              {report.doctorContact}
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
+              onClick={() => onSelectReport(report)}
+            >
+              View Details
+            </Button>
+            <Button variant="outline" className="rounded-full border-border/60 text-muted-foreground">
+              <Download className="mr-2 h-4 w-4" aria-hidden="true" /> Download PDF
+            </Button>
+            <Button variant="ghost" className="rounded-full text-muted-foreground">
+              <Share2 className="mr-2 h-4 w-4" aria-hidden="true" /> Share with Doctor
+            </Button>
+          </div>
+        </div>
+      ))}
+    </CardContent>
+    <CardFooter className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
+      <span className="inline-flex items-center gap-2">
+        <History className="h-4 w-4 text-primary" aria-hidden="true" />
+        10 access events logged in the last 90 days
+      </span>
+      <Button variant="ghost" className="rounded-full text-primary">
+        View Full Audit Trail
+        <ArrowUpRight className="ml-1 h-4 w-4" aria-hidden="true" />
+      </Button>
+    </CardFooter>
+  </Card>
+);
+
+const EmergencyContactsView = () => (
+  <Card className="rounded-3xl border border-border/60 bg-background/85 shadow-xl backdrop-blur">
+    <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <CardTitle className="text-xl font-semibold text-foreground">
+          Your Emergency Guardians
+        </CardTitle>
+        <CardDescription className="text-sm text-muted-foreground">
+          These trusted contacts can authorize physician access in seconds via Guardian Bridge.
+        </CardDescription>
+      </div>
+      <Button className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90">
+        <Plus className="mr-2 h-4 w-4" aria-hidden="true" /> Add Emergency Contact
+      </Button>
+    </CardHeader>
+    <CardContent className="grid gap-4 md:grid-cols-2">
+      {emergencyContacts.map((contact) => (
+        <div
+          key={contact.name}
+          className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-background/80 p-4 shadow-md"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-base font-semibold text-foreground">
+                {contact.name}
+              </p>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                {contact.relationship}
+              </p>
+            </div>
+            {contact.primary ? (
+              <Badge className="rounded-full bg-success/10 text-success">
+                Primary
+              </Badge>
+            ) : null}
+          </div>
+          <div className="space-y-2 text-sm text-muted-foreground">
+            <p className="flex items-center gap-2">
+              <Phone className="h-4 w-4 text-primary" aria-hidden="true" />
+              {contact.phone}
+            </p>
+            <p className="flex items-center gap-2">
+              <Mail className="h-4 w-4 text-primary" aria-hidden="true" />
+              {contact.email}
+            </p>
+          </div>
+          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+            <Button variant="outline" className="flex-1 rounded-full border-primary/40 text-primary">
+              Edit
+            </Button>
+            <Button variant="ghost" className="rounded-full text-danger hover:text-danger">
+              Remove
+            </Button>
+          </div>
+        </div>
+      ))}
+    </CardContent>
+  </Card>
+);
+
+const HealthProfileView = () => (
+  <Card className="rounded-3xl border border-border/60 bg-background/90 shadow-xl backdrop-blur">
+    <CardHeader>
+      <CardTitle className="text-xl font-semibold text-foreground">
+        Critical Health Information
+      </CardTitle>
+      <CardDescription className="text-sm text-muted-foreground">
+        Maintain an up-to-date clinical snapshot for faster emergency decisions.
+      </CardDescription>
+    </CardHeader>
+    <CardContent>
+      <Accordion type="multiple" className="space-y-4">
+        <AccordionItem value="allergies" className="rounded-2xl border border-border/40 px-4">
+          <AccordionTrigger className="text-base font-semibold text-danger">
+            Allergies
+          </AccordionTrigger>
+          <AccordionContent className="space-y-3 pb-4">
+            <div className="rounded-2xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+              Severe anaphylaxis risk detected. Inform caregivers immediately if symptoms arise.
+            </div>
+            <div className="space-y-3">
+              {allergies.map((item) => (
+                <div
+                  key={item.name}
+                  className="flex flex-col gap-1.5 rounded-2xl border border-border/60 bg-background/80 px-4 py-3"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-sm font-semibold text-foreground">
+                      {item.name}
+                    </span>
+                    <Badge className="rounded-full bg-danger/10 text-danger">
+                      {item.severity}
+                    </Badge>
+                  </div>
+                  <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-muted/50 px-2 py-1">
+                      <FileDigit className="h-3 w-3" aria-hidden="true" />
+                      {item.type}
+                    </span>
+                    <span>{item.reaction}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <Button variant="outline" className="rounded-full border-primary/40 text-primary">
+              Add Allergy
+            </Button>
+          </AccordionContent>
+        </AccordionItem>
+
+        <AccordionItem value="conditions" className="rounded-2xl border border-border/40 px-4">
+          <AccordionTrigger className="text-base font-semibold text-primary">
+            Chronic Conditions
+          </AccordionTrigger>
+          <AccordionContent className="space-y-3 pb-4">
+            <div className="space-y-3">
+              {conditions.map((condition) => (
+                <div
+                  key={condition.name}
+                  className="flex flex-col gap-1.5 rounded-2xl border border-border/60 bg-background/80 px-4 py-3"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-sm font-semibold text-foreground">
+                      {condition.name}
+                    </span>
+                    <Badge className="rounded-full bg-info/10 text-info">
+                      {condition.status}
+                    </Badge>
+                  </div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                    Diagnosed {condition.diagnosed}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <Button variant="outline" className="rounded-full border-primary/40 text-primary">
+              Add Condition
+            </Button>
+          </AccordionContent>
+        </AccordionItem>
+
+        <AccordionItem value="medications" className="rounded-2xl border border-border/40 px-4">
+          <AccordionTrigger className="text-base font-semibold text-success">
+            Current Medications
+          </AccordionTrigger>
+          <AccordionContent className="space-y-4 pb-4">
+            <div className="overflow-x-auto rounded-2xl border border-border/60">
+              <div className="min-w-[700px]">
+                <div className="grid grid-cols-[1.6fr,1fr,1fr,1.2fr,1fr] items-center bg-muted px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <span>Medication</span>
+                  <span>Dosage</span>
+                  <span>Frequency</span>
+                  <span>Prescribing Doctor</span>
+                  <span>Start Date</span>
+                </div>
+                <div className="divide-y divide-border/40">
+                  {medications.map((med) => (
+                    <div
+                      key={med.name}
+                      className="grid grid-cols-[1.6fr,1fr,1fr,1.2fr,1fr] items-center px-4 py-3 text-sm text-muted-foreground"
+                    >
+                      <div className="flex items-center gap-2">
+                        {med.critical ? (
+                          <Badge className="rounded-full bg-danger/15 text-danger">
+                            Critical
+                          </Badge>
+                        ) : null}
+                        <span className="text-foreground">{med.name}</span>
+                      </div>
+                      <span>{med.dosage}</span>
+                      <span>{med.frequency}</span>
+                      <span>{med.doctor}</span>
+                      <span>{med.startDate}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <Button variant="outline" className="rounded-full border-primary/40 text-primary">
+              Add Medication
+            </Button>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
+    </CardContent>
+  </Card>
+);
+
 function PatientPortal() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [selectedReport, setSelectedReport] = useState<ReportSummary | null>(
     null,
   );
+  const [activeView, setActiveView] = useState("My Dashboard");
   const { toast } = useToast();
 
   const healthId = "MED-2A7K9";
@@ -486,8 +999,9 @@ function PatientPortal() {
               {sidebarNav.map((item) => (
                 <Button
                   key={item.label}
-                  variant={item.label === "My Dashboard" ? "default" : "ghost"}
+                  variant={activeView === item.label ? "default" : "ghost"}
                   className="w-full justify-start gap-3 rounded-full px-4 py-2.5 text-sm font-medium"
+                  onClick={() => setActiveView(item.label)}
                 >
                   <item.icon className="h-4 w-4" aria-hidden="true" />
                   {item.label}
@@ -513,518 +1027,13 @@ function PatientPortal() {
           </aside>
 
           <div className="flex flex-col gap-6">
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              {quickStats.map((stat) => (
-                <Card
-                  key={stat.label}
-                  className="rounded-2xl border border-border/50 bg-background/80 shadow-lg backdrop-blur transition-transform duration-200 hover:-translate-y-1"
-                >
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardDescription className="text-sm text-muted-foreground">
-                      {stat.label}
-                    </CardDescription>
-                    <span className={`rounded-full p-2 ${stat.tone}`}>
-                      <stat.icon className="h-4 w-4" aria-hidden="true" />
-                    </span>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-semibold">{stat.value}</div>
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      {stat.description}
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            <Card className="rounded-3xl border border-border/60 bg-background/80 shadow-xl backdrop-blur">
-              <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <CardTitle className="text-xl font-semibold text-foreground">
-                    Add New Medical Record
-                  </CardTitle>
-                  <CardDescription className="text-sm text-muted-foreground">
-                    Upload documents, paste text, or let Medi-Link AI structure your reports instantly.
-                  </CardDescription>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Brain className="h-4 w-4 text-primary" aria-hidden="true" />
-                  AI insights ready in under 30 seconds
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid gap-6 md:grid-cols-2">
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="title">Report Title</Label>
-                      <Input
-                        id="title"
-                        placeholder="e.g., Comprehensive Blood Panel"
-                        className="rounded-xl border-input/70"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="type">Report Type</Label>
-                      <Select defaultValue="Blood Test">
-                        <SelectTrigger id="type" className="rounded-xl border-input/70">
-                          <SelectValue placeholder="Select report type" />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-2xl border border-border/60">
-                          {reportTypeOptions.map((option) => (
-                            <SelectItem key={option} value={option}>
-                              {option}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="date">Date of Checkup</Label>
-                        <Input id="date" type="date" className="rounded-xl border-input/70" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="doctor">Referring Doctor&apos;s Name</Label>
-                        <Input id="doctor" placeholder="Dr. Anita Rao" className="rounded-xl border-input/70" />
-                      </div>
-                    </div>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="clinic">Hospital / Clinic Name</Label>
-                        <Input id="clinic" placeholder="City Medical Diagnostics" className="rounded-xl border-input/70" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="contact">Doctor Contact Number (optional)</Label>
-                        <Input id="contact" placeholder="+1 (415) 444-9871" className="rounded-xl border-input/70" />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="content">Raw Report Content</Label>
-                      <Textarea
-                        id="content"
-                        placeholder="Paste your report text or add optional context for AI analysis"
-                        className="min-h-[140px] rounded-2xl border-input/70"
-                      />
-                    </div>
-                    <label
-                      htmlFor="file-upload"
-                      className="flex flex-1 cursor-pointer flex-col items-center justify-center rounded-3xl border border-dashed border-primary/40 bg-primary/5 p-6 text-center transition-colors hover:border-primary/60"
-                    >
-                      <Upload className="h-8 w-8 text-primary" aria-hidden="true" />
-                      <p className="mt-3 text-sm font-medium text-primary">
-                        Drag & drop files or click to upload
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        PDF, JPG, DICOM, DOCX up to 50MB per file
-                      </p>
-                      <input id="file-upload" type="file" className="sr-only" multiple />
-                    </label>
-                  </div>
-                </div>
-                <div className="flex flex-wrap items-center gap-3">
-                  <Button className="rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90">
-                    <Brain className="mr-2 h-4 w-4" aria-hidden="true" /> Upload & Analyze with AI
-                  </Button>
-                  <Button variant="outline" className="rounded-full border-primary/40 text-primary">
-                    Save Draft
-                  </Button>
-                  <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-                    <Users className="h-4 w-4 text-primary" aria-hidden="true" /> Guardian approval requested post-upload
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="overflow-hidden rounded-3xl border border-primary/20 bg-gradient-to-r from-primary/10 via-background to-secondary/40 shadow-xl backdrop-blur">
-              <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <CardTitle className="text-xl font-semibold text-foreground">
-                    AI-Generated Summary
-                  </CardTitle>
-                  <CardDescription className="text-sm text-muted-foreground">
-                    Medi-Link AI extracted critical vitals and treatment signals for your latest upload.
-                  </CardDescription>
-                </div>
-                <Badge className="rounded-full bg-success/15 text-success">
-                  Status: Ready
-                </Badge>
-              </CardHeader>
-              <CardContent className="grid gap-6 md:grid-cols-[2fr,1fr]">
-                <div className="space-y-4 text-sm leading-relaxed text-muted-foreground">
-                  <p>
-                    Glucose levels show a 9% improvement since Oct 2024, aligning with increased medication adherence and lifestyle changes. Blood pressure remains moderately elevated in morning readings; AI recommends checking for nocturnal hypertension.
-                  </p>
-                  <p>
-                    MRI lumbar scan indicates reduced inflammation and stable disc condition. Monitoring physical therapy cadence and core strength metrics is advised to maintain recovery trajectory.
-                  </p>
-                  <div>
-                    <h4 className="mb-3 text-sm font-semibold text-foreground">AI Insights</h4>
-                    <ul className="grid gap-2 text-sm">
-                      <li className="flex items-start gap-2 rounded-2xl bg-background/70 p-3">
-                        <CheckCircle2 className="mt-0.5 h-4 w-4 text-success" aria-hidden="true" />
-                        Improved medication adherence corresponds with stabilized fasting glucose trends.
-                      </li>
-                      <li className="flex items-start gap-2 rounded-2xl bg-background/70 p-3">
-                        <AlertTriangle className="mt-0.5 h-4 w-4 text-warning" aria-hidden="true" />
-                        Consider wearable BP monitoring for nocturnal spikes; Guardian Bridge ready to notify cardiology team.
-                      </li>
-                      <li className="flex items-start gap-2 rounded-2xl bg-background/70 p-3">
-                        <ShieldCheck className="mt-0.5 h-4 w-4 text-primary" aria-hidden="true" />
-                        No concerning anomalies detected in latest MRI imagery compared to prior scan.
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-                <div className="flex flex-col gap-4 rounded-2xl border border-border/60 bg-background/80 p-4 shadow-lg">
-                  <h4 className="text-sm font-semibold text-foreground">Key Metrics Extracted</h4>
-                  <div className="space-y-3 text-sm">
-                    <div className="flex items-center justify-between rounded-2xl border border-success/20 bg-success/10 px-3 py-2 text-success">
-                      <div className="flex items-center gap-2">
-                        <HeartPulse className="h-4 w-4" aria-hidden="true" />
-                        Heart Rate
-                      </div>
-                      <span className="font-semibold text-success">72 BPM</span>
-                    </div>
-                    <div className="flex items-center justify-between rounded-2xl border border-warning/30 bg-warning/10 px-3 py-2 text-warning">
-                      <div className="flex items-center gap-2">
-                        <ClipboardList className="h-4 w-4" aria-hidden="true" />
-                        Blood Pressure
-                      </div>
-                      <span className="font-semibold text-warning">128/84 mmHg</span>
-                    </div>
-                    <div className="flex items-center justify-between rounded-2xl border border-info/30 bg-info/10 px-3 py-2 text-info">
-                      <div className="flex items-center gap-2">
-                        <Award className="h-4 w-4" aria-hidden="true" />
-                        Glucose
-                      </div>
-                      <span className="font-semibold text-info">108 mg/dL</span>
-                    </div>
-                  </div>
-                  <div className="space-y-2 rounded-2xl border border-primary/30 bg-primary/10 px-3 py-2 text-sm text-primary">
-                    <span className="font-semibold uppercase tracking-wide">Risk Level</span>
-                    <span className="text-lg font-semibold">Moderate</span>
-                    <p className="text-xs text-primary/80">
-                      AI suggests weekly vitals logging and cardiology follow-up in 45 days.
-                    </p>
-                  </div>
-                  <Button className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90">
-                    Save to Records
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="rounded-3xl border border-border/60 bg-background/85 shadow-xl backdrop-blur">
-              <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <CardTitle className="text-xl font-semibold text-foreground">
-                    Your Emergency Guardians
-                  </CardTitle>
-                  <CardDescription className="text-sm text-muted-foreground">
-                    These trusted contacts can authorize physician access in seconds via Guardian Bridge.
-                  </CardDescription>
-                </div>
-                <Button className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90">
-                  <Plus className="mr-2 h-4 w-4" aria-hidden="true" /> Add Emergency Contact
-                </Button>
-              </CardHeader>
-              <CardContent className="grid gap-4 md:grid-cols-2">
-                {emergencyContacts.map((contact) => (
-                  <div
-                    key={contact.name}
-                    className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-background/80 p-4 shadow-md"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-base font-semibold text-foreground">
-                          {contact.name}
-                        </p>
-                        <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                          {contact.relationship}
-                        </p>
-                      </div>
-                      {contact.primary ? (
-                        <Badge className="rounded-full bg-success/10 text-success">
-                          Primary
-                        </Badge>
-                      ) : null}
-                    </div>
-                    <div className="space-y-2 text-sm text-muted-foreground">
-                      <p className="flex items-center gap-2">
-                        <Phone className="h-4 w-4 text-primary" aria-hidden="true" />
-                        {contact.phone}
-                      </p>
-                      <p className="flex items-center gap-2">
-                        <Mail className="h-4 w-4 text-primary" aria-hidden="true" />
-                        {contact.email}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                      <Button variant="outline" className="flex-1 rounded-full border-primary/40 text-primary">
-                        Edit
-                      </Button>
-                      <Button variant="ghost" className="rounded-full text-danger hover:text-danger">
-                        Remove
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            <Card className="rounded-3xl border border-border/60 bg-background/90 shadow-xl backdrop-blur">
-              <CardHeader>
-                <CardTitle className="text-xl font-semibold text-foreground">
-                  Critical Health Information
-                </CardTitle>
-                <CardDescription className="text-sm text-muted-foreground">
-                  Maintain an up-to-date clinical snapshot for faster emergency decisions.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Accordion type="multiple" className="space-y-4">
-                  <AccordionItem value="allergies" className="rounded-2xl border border-border/40 px-4">
-                    <AccordionTrigger className="text-base font-semibold text-danger">
-                      Allergies
-                    </AccordionTrigger>
-                    <AccordionContent className="space-y-3 pb-4">
-                      <div className="rounded-2xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
-                        Severe anaphylaxis risk detected. Inform caregivers immediately if symptoms arise.
-                      </div>
-                      <div className="space-y-3">
-                        {allergies.map((item) => (
-                          <div
-                            key={item.name}
-                            className="flex flex-col gap-1.5 rounded-2xl border border-border/60 bg-background/80 px-4 py-3"
-                          >
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                              <span className="text-sm font-semibold text-foreground">
-                                {item.name}
-                              </span>
-                              <Badge className="rounded-full bg-danger/10 text-danger">
-                                {item.severity}
-                              </Badge>
-                            </div>
-                            <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                              <span className="inline-flex items-center gap-1 rounded-full bg-muted/50 px-2 py-1">
-                                <FileDigit className="h-3 w-3" aria-hidden="true" />
-                                {item.type}
-                              </span>
-                              <span>{item.reaction}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      <Button variant="outline" className="rounded-full border-primary/40 text-primary">
-                        Add Allergy
-                      </Button>
-                    </AccordionContent>
-                  </AccordionItem>
-
-                  <AccordionItem value="conditions" className="rounded-2xl border border-border/40 px-4">
-                    <AccordionTrigger className="text-base font-semibold text-primary">
-                      Chronic Conditions
-                    </AccordionTrigger>
-                    <AccordionContent className="space-y-3 pb-4">
-                      {conditions.map((condition) => (
-                        <div
-                          key={condition.name}
-                          className="flex flex-col gap-1.5 rounded-2xl border border-border/60 bg-background/80 px-4 py-3"
-                        >
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <span className="text-sm font-semibold text-foreground">
-                              {condition.name}
-                            </span>
-                            <Badge className="rounded-full bg-info/10 text-info">
-                              {condition.status}
-                            </Badge>
-                          </div>
-                          <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                            Diagnosed {condition.diagnosed}
-                          </p>
-                        </div>
-                      ))}
-                      <Button variant="outline" className="rounded-full border-primary/40 text-primary">
-                        Add Condition
-                      </Button>
-                    </AccordionContent>
-                  </AccordionItem>
-
-                  <AccordionItem value="medications" className="rounded-2xl border border-border/40 px-4">
-                    <AccordionTrigger className="text-base font-semibold text-success">
-                      Current Medications
-                    </AccordionTrigger>
-                    <AccordionContent className="space-y-4 pb-4">
-                      <div className="overflow-hidden rounded-2xl border border-border/60">
-                        <div className="grid grid-cols-[1.6fr,1fr,1fr,1.2fr,1fr] items-center bg-muted px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                          <span>Medication</span>
-                          <span>Dosage</span>
-                          <span>Frequency</span>
-                          <span>Prescribing Doctor</span>
-                          <span>Start Date</span>
-                        </div>
-                        <div className="divide-y divide-border/40">
-                          {medications.map((med) => (
-                            <div
-                              key={med.name}
-                              className="grid grid-cols-[1.6fr,1fr,1fr,1.2fr,1fr] items-center px-4 py-3 text-sm text-muted-foreground"
-                            >
-                              <div className="flex items-center gap-2">
-                                {med.critical ? (
-                                  <Badge className="rounded-full bg-danger/15 text-danger">
-                                    Critical
-                                  </Badge>
-                                ) : null}
-                                <span className="text-foreground">{med.name}</span>
-                              </div>
-                              <span>{med.dosage}</span>
-                              <span>{med.frequency}</span>
-                              <span>{med.doctor}</span>
-                              <span>{med.startDate}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                      <Button variant="outline" className="rounded-full border-primary/40 text-primary">
-                        Add Medication
-                      </Button>
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
-              </CardContent>
-            </Card>
-
-            <Card className="rounded-3xl border border-border/60 bg-background/95 shadow-2xl backdrop-blur">
-              <CardHeader className="gap-6">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <CardTitle className="text-xl font-semibold text-foreground">
-                      Your Medical History
-                    </CardTitle>
-                    <CardDescription className="text-sm text-muted-foreground">
-                      Filter, search, and share records instantly with care teams.
-                    </CardDescription>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                    <ShieldCheck className="h-4 w-4 text-success" aria-hidden="true" />
-                    Every access logged & guardian notified
-                  </div>
-                </div>
-                <div className="grid gap-3 md:grid-cols-[1fr,1fr,1fr,auto]">
-                  <div className="flex items-center gap-2 rounded-full border border-border/60 bg-background px-4 py-2">
-                    <Search className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                    <Input
-                      placeholder="Search reports, doctors, hospitals"
-                      className="h-8 border-none bg-transparent p-0 text-sm focus-visible:ring-0"
-                    />
-                  </div>
-                  <Select defaultValue="All Types">
-                    <SelectTrigger className="rounded-full border border-border/60 bg-background px-4 py-2 text-sm">
-                      <SelectValue placeholder="Filter by type" />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-2xl border border-border/60">
-                      <SelectItem value="All Types">All Types</SelectItem>
-                      {reportTypeOptions.map((option) => (
-                        <SelectItem key={option} value={option}>
-                          {option}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button variant="outline" className="rounded-full border-border/60 text-muted-foreground">
-                    <CalendarClock className="mr-2 h-4 w-4" aria-hidden="true" /> Date Range
-                  </Button>
-                  <Button variant="ghost" className="rounded-full text-sm text-muted-foreground">
-                    <Filter className="mr-2 h-4 w-4" aria-hidden="true" /> Sort by: Most Recent
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="grid gap-5 xl:grid-cols-2">
-                {sortedReports.map((report) => (
-                  <div
-                    key={report.id}
-                    className="flex h-full flex-col gap-4 rounded-3xl border border-border/60 bg-background/80 p-6 shadow-xl transition-transform duration-200 hover:-translate-y-1"
-                  >
-                    <div className={`inline-flex w-fit items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${report.typeColor}`}>
-                      {report.type}
-                    </div>
-                    <div className="space-y-1">
-                      <h3 className="text-lg font-semibold text-foreground">
-                        {report.title}
-                      </h3>
-                      <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                        <span className="inline-flex items-center gap-2">
-                          <CalendarClock className="h-4 w-4 text-primary" aria-hidden="true" />
-                          {report.date}
-                        </span>
-                        <span className="inline-flex items-center gap-2">
-                          <Hospital className="h-4 w-4 text-primary" aria-hidden="true" />
-                          {report.hospital}
-                        </span>
-                        <span className="inline-flex items-center gap-2">
-                          <Stethoscope className="h-4 w-4 text-primary" aria-hidden="true" />
-                          {report.doctor}
-                        </span>
-                      </div>
-                    </div>
-                    <p className="line-clamp-3 text-sm text-muted-foreground">
-                      {report.aiSummary}
-                    </p>
-                    <div className="grid gap-3 sm:grid-cols-3">
-                      {report.metrics.map((metric) => (
-                        <div
-                          key={metric.label}
-                          className={`rounded-2xl px-3 py-2 text-xs font-semibold ${metricStatusStyles[metric.status]}`}
-                        >
-                          <p className="uppercase tracking-wide text-muted-foreground/70">
-                            {metric.label}
-                          </p>
-                          <p className="text-base text-foreground">
-                            {metric.value}
-                            {metric.unit ? <span className="text-xs text-muted-foreground"> {metric.unit}</span> : null}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3">
-                      <Badge className={`rounded-full px-4 py-1 text-xs font-semibold ${riskBadgeStyles[report.riskLevel]}`}>
-                        Risk: {report.riskLevel}
-                      </Badge>
-                      <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
-                        <Phone className="h-4 w-4 text-primary" aria-hidden="true" />
-                        {report.doctorContact}
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3">
-                      <Button
-                        className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
-                        onClick={() => setSelectedReport(report)}
-                      >
-                        View Details
-                      </Button>
-                      <Button variant="outline" className="rounded-full border-border/60 text-muted-foreground">
-                        <Download className="mr-2 h-4 w-4" aria-hidden="true" /> Download PDF
-                      </Button>
-                      <Button variant="ghost" className="rounded-full text-muted-foreground">
-                        <Share2 className="mr-2 h-4 w-4" aria-hidden="true" /> Share with Doctor
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-              <CardFooter className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
-                <span className="inline-flex items-center gap-2">
-                  <History className="h-4 w-4 text-primary" aria-hidden="true" />
-                  10 access events logged in the last 90 days
-                </span>
-                <Button variant="ghost" className="rounded-full text-primary">
-                  View Full Audit Trail
-                  <ArrowUpRight className="ml-1 h-4 w-4" aria-hidden="true" />
-                </Button>
-              </CardFooter>
-            </Card>
+            {activeView === "My Dashboard" && <DashboardView />}
+            {activeView === "Upload Records" && <UploadRecordsView />}
+            {activeView === "My Reports" && <MyReportsView onSelectReport={setSelectedReport} sortedReports={sortedReports} riskBadgeStyles={riskBadgeStyles} metricStatusStyles={metricStatusStyles} />}
+            {activeView === "Emergency Contacts" && <EmergencyContactsView />}
+            {activeView === "Health Profile" && <HealthProfileView />}
+            {activeView === "Health Trends" && <HealthTrendsView />}
+            {activeView === "Settings" && <Card className="rounded-3xl"><CardHeader><CardTitle>Settings</CardTitle></CardHeader><CardContent><p>Settings view is under construction.</p></CardContent></Card>}
           </div>
         </div>
       </div>
